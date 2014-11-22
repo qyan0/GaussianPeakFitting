@@ -36,18 +36,21 @@ def readChi(filePath):
     from csv import writer
     from numpy import array
     from os import path
+    import matplotlib.pyplot as plt
 
     # outFileName = 'csv_'+ path.basename(filePath)[:-4] + '.csv' # Add this part of statement to output filename with Timestamp  
-								    # + '_' + strftime("%b%d%H%M",gmtime())
+                                    # + '_' + strftime("%b%d%H%M",gmtime())
     with open(filePath,'rb') as infile: #, open(outFileName, 'wb') as outfile: #Uncomment this to write out temp csv file. See below.
-	lines_after_4 = infile.readlines()[4:]
-	Text = lines_after_4
-	k = [row.split() for row in Text]
-	# writer = writer(outfile) These lines are for writing out a csv file after removing the header from the chiplot. 
-	# for row in k:
-	#	writer.writerow(row)
-	#print 'The data for chi plot has been output to ' + outFileName + ' in current directory.'
+        lines_after_4 = infile.readlines()[4:]
+        Text = lines_after_4
+        k = [row.split() for row in Text]
+    # writer = writer(outfile) These lines are for writing out a csv file after removing the header from the chiplot. 
+    # for row in k:
+    #   writer.writerow(row)
+    #print 'The data for chi plot has been output to ' + outFileName + ' in current directory.'
         array = array(k).astype(float)
+        plt.plot(array)
+        plt.show()
         return array
 
 # ========================================================================= #
@@ -60,9 +63,9 @@ def PeakFinder(array):
     from scipy import signal
     import numpy as np
     maxima = signal.find_peaks_cwt(y, np.arange(1,10)) # Working of this algorithm found in the following link
-							# http://bioinformatics.oxfordjournals.org/content/22/17/2059.long
-    difference = np.diff(maxima)			# This generates an array of differences between the indices of the 
-							# local maxima which will be used below to find periodicity.
+                            # http://bioinformatics.oxfordjournals.org/content/22/17/2059.long
+    difference = np.diff(maxima)            # This generates an array of differences between the indices of the 
+                            # local maxima which will be used below to find periodicity.
     return difference
     
 # ========================================================================= #
@@ -85,9 +88,9 @@ def Periodicity(differences):
 
 # Defining a Gaussian distribution. 
 
-def GaussianModel(x, sigma, center, A, C):
+def GaussianModel(x, center, A, C):
     import numpy as np
-    return [A * np.exp(-(a - center)**2/(2 * sigma**2)) + C for a in x]
+    return [A * np.exp(-(a - center)**2/(2 * 0.0051**2)) + C for a in x]
 
 # ========================================================================= #
 
@@ -112,47 +115,50 @@ def PeakFit(separation, array, fileName):
       if(len(x) < n * separation):
         print ('Index out of bound. Input a smaller value.')
       else:
-	 done = True
+         done = True
 
-	 
+     
 #    sigma = int(raw_input('Please the half maximum width of peaks to fit: '))
 
     center = []           # placeholders
     height = []
-    popt_array = [["sigma","center","height","baseline"]]
+    popt_array = [["center","height","baseline"]]
     
     for i in range(n):
-        center.append(x[separation * (i + 1)]) # Defining starting point for peak fits. 
-        height.append(y[separation * (i + 1)]) # Defining starting point for peak fits.
+        center.append(x[separation * (i + 1) - i/6]) # Defining starting point for peak fits. 
+        height.append(y[separation * (i + 1)- i/6]) # Defining starting point for peak fits.
 #    print center # For Debugging. 
 #    print height # For Debugging.
-    print 'sigma              mu                  height               baseline'
+    print '%15s %15s %15s'%("mu","height","baseline")
+    plt.figure()
     for i in range(n):
-        xdata = x[i*separation + int(floor(0.5 * separation)) : (i + 2) * separation- int(floor(0.5 * separation))] # defining the X-range of the peak.
-        ydata = y[i*separation + int(floor(0.5 * separation)): (i + 2) * separation - int(floor(0.5 * separation))] # defining the Y-range of the peak.
+        xdata = x[i*separation + int(floor(0.5 * separation)) - i/6 : (i + 2) * separation - int(floor(0.5 * separation))- i/6] # defining the X-range of the peak.
+        ydata = y[i*separation + int(floor(0.5 * separation)) - i/6 : (i + 2) * separation - int(floor(0.5 * separation))- i/6] # defining the Y-range of the peak.
                 
-        par = [0.01, center[i], height[i], 50] # Random initialization of Gaussian fit function. 
-						# The 4 parameters correspond to sigma, center, A and C in function definition in line 88.
+        par = [center[i], height[i], 50] # Random initialization of Gaussian fit function. 
+                        # The 4 parameters correspond to sigma, center, A and C in function definition in line 88.
         popt, pcov = curve_fit(GaussianModel,xdata, ydata, par) # popt is the optimum set of parameters for the Gaussian fit. 
-	                                                        # pcov is the covariance of the parameters. (not using in our case)
-	popt_array.append(popt)                                 # writing popt to list to make a csv file with fit parameters and data. 
-	
-        print popt
-        plt.close() # Closing any other program/script/loop using the plt library from line 100.
-        plt.figure()
+                                                            # pcov is the covariance of the parameters. (not using in our case)
+        popt_array.append(popt)                                 # writing popt to list to make a csv file with fit parameters and data. 
+    
+        print "%15.10f %15.10f %15.10f" % (popt[0],popt[1],popt[2])
+
         plt.plot(xdata, ydata) # Plotting raw data.
         plt.plot(np.arange(min(xdata),max(xdata),0.001), GaussianModel(np.arange(min(xdata),max(xdata),0.001), *popt)) # Plotting fit data. 
-        plt.savefig(fileName+'peak_'+str(i+1)+'.png') # Saving peak fit plot and raw peak plot as overlaid png.
-    plt.close() 
+         # Saving peak fit plot and raw peak plot as overlaid png.
+    plt.savefig(fileName+'peak'+'.svg')    
+    plt.show()
+
+#    plt.close() 
 
     outFileName = 'fitted_'+ fileName + '_' + strftime("%b%d%H%M",localtime()) +'.csv' 
-								    # 
+                                    # 
     with open(outFileName, 'wb') as outfile: 
-		
-	writer = writer(outfile) # These lines are for writing out a csv file after removing the header from the chiplot. 
-	for row in popt_array:
-	  writer.writerow(row)
-	print 'The fit data has been output to ' + outFileName + ' in current directory.'
+        
+        writer = writer(outfile) # These lines are for writing out a csv file after removing the header from the chiplot. 
+        for row in popt_array:
+            writer.writerow(row)
+        print 'The fit data has been output to ' + outFileName + ' in current directory.'
 
 # ========================================================================= #
 
@@ -167,3 +173,22 @@ PeakFit(separation, array)
 
 print 'Thank you!'
 '''
+import curveFit
+from os import path
+
+print 'This program fit Gaussian distribution on chi plot data and return the height of peak found.'
+
+done = False
+
+while not done:
+    filePath = getFilePath()
+    fileName = path.basename(filePath)[:-4]
+    array = readChi(filePath)
+    differences = PeakFinder(array)
+    separation = Periodicity(differences)
+    PeakFit(separation, array,fileName)
+
+    ans = raw_input("Do you want to fit more chi plots in this session?(y or n): ")
+    if ans == 'n':
+        done = True
+print 'Thank you! This program was written by Meng "Mamie" Wang. For more questions contact Mamie at mamie@hawk.iit.edu or Rama at ramasashank@gmail.com'

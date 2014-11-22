@@ -125,15 +125,15 @@ def PeakFit(separation, array, fileName):
     popt_array = [["sigma","center","height","baseline"]]
     
     for i in range(n):
-        center.append(x[separation * (i + 1)]) # Defining starting point for peak fits. 
-        height.append(y[separation * (i + 1)]) # Defining starting point for peak fits.
+        center.append(x[separation * (i + 1) - i/5]) # Defining starting point for peak fits. 
+        height.append(y[separation * (i + 1) - i/5]) # Defining starting point for peak fits.
 #    print center # For Debugging. 
 #    print height # For Debugging.
     print 'sigma              mu                  height               baseline'
     plt.figure()
     for i in range(n):
-        xdata = x[i*separation + int(floor(0.5 * separation)) : (i + 2) * separation- int(floor(0.5 * separation))] # defining the X-range of the peak.
-        ydata = y[i*separation + int(floor(0.5 * separation)): (i + 2) * separation - int(floor(0.5 * separation))] # defining the Y-range of the peak.
+        xdata = x[i*separation + int(floor(0.5 * separation)) - i/5 : (i + 2) * separation - int(floor(0.5 * separation)) - i/5] # defining the X-range of the peak.
+        ydata = y[i*separation + int(floor(0.5 * separation)) - i/5 : (i + 2) * separation - int(floor(0.5 * separation)) - i/5] # defining the Y-range of the peak.
                 
         par = [0.01, center[i], height[i], 50] # Random initialization of Gaussian fit function. 
                         # The 4 parameters correspond to sigma, center, A and C in function definition in line 88.
